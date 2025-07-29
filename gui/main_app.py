@@ -9,36 +9,31 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QUrl # QUrl 임포트 추가
-from PyQt5.QtWidgets import QApplication, QTextBrowser # QTextBrowser 임포트 추가
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QUrl
+from PyQt5.QtWidgets import QApplication, QTextBrowser
 
 from api.openai_api import get_image_description
 from api.google_image_search_api import search_image_urls
 from utils.file_handler import get_image_file
-import requests
-import io
 import json
-import webbrowser # 웹 브라우저 열기 위해 임포트
+import webbrowser
 
-# --- 새로운 스레드 클래스: 음식 이미지 URL 검색을 담당 ---
 class FoodImageSearchThread(QThread):
-    finished = pyqtSignal(int, str) # 인덱스와 URL 반환
+    finished = pyqtSignal(int, str)
     error = pyqtSignal(str)
 
     def __init__(self, query, index):
         super().__init__()
         self.query = query
-        self.index = index # 어떤 음식 항목인지 식별하기 위한 인덱스
+        self.index = index
 
     def run(self):
         try:
-            # google_image_search_api.py에서 Referer와 User-Agent를 이미 설정했으므로
-            # 여기서는 별도로 헤더를 추가하지 않습니다.
             image_urls = search_image_urls(self.query, num_results=1)
             if image_urls:
                 self.finished.emit(self.index, image_urls[0])
             else:
-                self.finished.emit(self.index, None) # URL을 찾지 못하면 None 반환
+                self.finished.emit(self.index, None) # URL을 찾지 못하면 None 리턴
         except Exception as e:
             self.error.emit(f"'{self.query}' 이미지 검색 실패: {e}")
 
@@ -46,7 +41,7 @@ class FoodImageSearchThread(QThread):
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1000, 700) # 초기 창 크기를 조금 더 키웠습니다.
+        MainWindow.resize(1000, 700)
 
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
@@ -59,8 +54,8 @@ class Ui_MainWindow(object):
         self.label_menu_image.setAlignment(QtCore.Qt.AlignCenter)
         self.label_menu_image.setObjectName("label_menu_image")
         self.label_menu_image.setText("메뉴판 이미지를 불러오세요")
-        self.label_menu_image.setStyleSheet("border: 1px solid gray;") # 테두리 추가
-        self.main_horizontal_layout.addWidget(self.label_menu_image, 2) # 스트레치 팩터 2
+        self.label_menu_image.setStyleSheet("border: 1px solid gray;")
+        self.main_horizontal_layout.addWidget(self.label_menu_image, 2)
 
         # 가운데 영역: GPT 설명 및 링크
         self.center_panel_widget = QtWidgets.QWidget(self.centralwidget)
@@ -70,13 +65,13 @@ class Ui_MainWindow(object):
         self.center_vertical_layout.setObjectName("center_vertical_layout")
 
         # QTextEdit 대신 QTextBrowser 사용
-        self.textEdit_gpt_description = QTextBrowser(self.center_panel_widget) # 변경
+        self.textEdit_gpt_description = QTextBrowser(self.center_panel_widget)
         self.textEdit_gpt_description.setObjectName("textEdit_gpt_description")
         self.textEdit_gpt_description.setReadOnly(True)
-        # QTextBrowser의 기본 동작을 제어하여 링크 클릭 시 외부 브라우저를 열고 내부 탐색 방지
-        self.textEdit_gpt_description.setOpenExternalLinks(False) # 링크를 내부에서 열지 않고 시그널 발생
-        self.textEdit_gpt_description.setOpenLinks(False) # 링크 클릭 시 QTexBrowser가 자체적으로 페이지를 변경하지 않도록 강제
-        self.textEdit_gpt_description.anchorClicked.connect(self.open_image_link) # anchorClicked 시그널 연결
+
+        self.textEdit_gpt_description.setOpenExternalLinks(False)
+        self.textEdit_gpt_description.setOpenLinks(False)
+        self.textEdit_gpt_description.anchorClicked.connect(self.open_image_link)
         self.center_vertical_layout.addWidget(self.textEdit_gpt_description, 1)
 
         self.main_horizontal_layout.addWidget(self.center_panel_widget, 2)
@@ -90,7 +85,7 @@ class Ui_MainWindow(object):
 
         self.pushButton_load_menu = QtWidgets.QPushButton(self.right_panel_widget)
         self.pushButton_load_menu.setObjectName("pushButton_load_menu")
-        self.pushButton_load_menu.setText("메뉴판 이미지 업로드") # retranslateUi에서 여기로 옮김
+        self.pushButton_load_menu.setText("메뉴판 이미지 업로드")
         self.pushButton_load_menu.clicked.connect(self.load_menu_image)
         self.right_vertical_layout.addWidget(self.pushButton_load_menu)
 
@@ -112,13 +107,12 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-        self.image_path = None # 메뉴판 이미지 경로 저장용
+        self.image_path = None
         self.gpt_result_food_data = [] # GPT 결과에서 추출한 음식 데이터 (local_name, description, image_url) 저장
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "메뉴판 AI 도우미"))
-        # self.pushButton_load_menu.setText(_translate("MainWindow", "메뉴판 이미지 업로드")) # setupUi로 이동
+        MainWindow.setWindowTitle(_translate("MainWindow", "메뉴판 도우미"))
 
     def load_menu_image(self):
         path = get_image_file()
@@ -134,10 +128,9 @@ class Ui_MainWindow(object):
             print("메뉴판 이미지 선택 취소")
             self.label_menu_image.setText("메뉴판 이미지를 불러오세요")
             self.textEdit_gpt_description.clear()
-            self.gpt_result_food_data = [] # 데이터 초기화
+            self.gpt_result_food_data = []
 
     def generate_description_and_extract_foods(self):
-        # GPT에게 현지 언어 메뉴 이름과 한국어 설명을 모두 요청
         prompt = """
         이 이미지에 있는 메뉴판의 메뉴를 분석하여 다음 JSON 형식으로 제공해줘:
         {
@@ -160,13 +153,13 @@ class Ui_MainWindow(object):
             return
 
         self.textEdit_gpt_description.setPlainText("메뉴판 분석 중... 잠시만 기다려 주세요.")
-        QApplication.processEvents() # UI 업데이트 강제
+        QApplication.processEvents()
 
         try:
             result_json_str = get_image_description(self.image_path, prompt)
-            print("GPT 원본 응답:", result_json_str) # 디버깅용 출력
+            print("GPT 원본 응답:", result_json_str)
 
-            # --- 응답 전처리 ---
+            # 응답 전처리
             clean_json_str = result_json_str.strip()
             if clean_json_str.startswith("```json"):
                 clean_json_str = clean_json_str[len("```json"):].strip()
@@ -180,44 +173,40 @@ class Ui_MainWindow(object):
                 raise ValueError("GPT 응답에서 유효한 JSON 객체의 시작과 끝을 찾을 수 없습니다.")
 
             clean_json_str = clean_json_str[start_idx : end_idx + 1]
-            # --- 응답 전처리 끝 ---
 
-            gpt_data = json.loads(clean_json_str) # 전처리된 문자열 파싱
 
-            # GPT 응답에서 받은 데이터를 self.gpt_result_food_data에 저장
+            gpt_data = json.loads(clean_json_str)
+
             self.gpt_result_food_data = []
             for item in gpt_data.get("menu_items", []):
                 local_name = item.get("local_name", "").strip()
                 korean_desc = item.get("description", "").strip()
-                if local_name: # local_name이 있는 경우에만 추가
+                if local_name:
                     self.gpt_result_food_data.append({
                         "local_name": local_name,
                         "korean_description": korean_desc,
-                        "image_url": None # 초기에는 URL 없음
+                        "image_url": None
                     })
             print("GPT 분석 완료. 음식 항목:", [item['local_name'] for item in self.gpt_result_food_data])
 
-            # GPT 분석 후 바로 이미지 검색 및 설명 업데이트 시작
             self.search_images_for_all_foods_and_update_display()
 
 
         except json.JSONDecodeError as e:
             print(f"GPT 응답 JSON 파싱 오류: {e}\n파싱 시도 문자열:\n{clean_json_str}")
             self.textEdit_gpt_description.setPlainText(f"GPT 응답 형식이 올바르지 않습니다: {e}\n\n원본 응답:\n{result_json_str}")
-        except ValueError as e: # 전처리 오류 처리
+        except ValueError as e:
             print(f"GPT 응답 전처리 오류: {e}")
             self.textEdit_gpt_description.setPlainText(f"GPT 응답을 처리하는 중 오류가 발생했습니다: {e}\n\n원본 응답:\n{result_json_str}")
         except Exception as e:
             print(f"GPT 설명 생성 중 오류 발생: {e}")
             self.textEdit_gpt_description.setPlainText("메뉴판 설명을 가져오는 데 실패했습니다.")
 
-    # 모든 음식에 대해 이미지 검색 및 설명 업데이트
     def search_images_for_all_foods_and_update_display(self):
         if not self.gpt_result_food_data:
             self.textEdit_gpt_description.setPlainText("분석된 음식 메뉴가 없습니다.")
             return
 
-        # QThread를 사용하여 각 메뉴 아이템에 대한 이미지 검색을 비동기적으로 시작
         self.image_search_threads = []
         for i, item in enumerate(self.gpt_result_food_data):
             local_name = item['local_name']
@@ -227,16 +216,13 @@ class Ui_MainWindow(object):
                 self.image_search_threads.append(thread)
                 thread.start()
 
-        # 초기 설명 텍스트를 먼저 표시 (링크는 나중에 스레드 결과에 따라 업데이트됨)
         self.update_description_text_with_links()
 
-    # 이미지 URL이 검색되면 데이터 업데이트 및 UI 갱신
     def update_food_item_with_image_url(self, item_index, image_url):
         if 0 <= item_index < len(self.gpt_result_food_data):
             self.gpt_result_food_data[item_index]['image_url'] = image_url
-            self.update_description_text_with_links() # URL이 업데이트될 때마다 UI 갱신
+            self.update_description_text_with_links()
 
-    # 설명 텍스트를 HTML 링크와 함께 업데이트
     def update_description_text_with_links(self):
         html_content = []
         for item in self.gpt_result_food_data:
@@ -244,23 +230,22 @@ class Ui_MainWindow(object):
             korean_desc = item.get("korean_description", "")
             image_url = item.get("image_url")
 
-            line_content = f"- <b>{local_name}</b>" # 음식 이름 볼드 처리
+            line_content = f"- <b>{local_name}</b>" 
 
             if korean_desc:
                 line_content += f": {korean_desc}"
 
             if image_url:
-                # 하이퍼링크 추가. 링크 텍스트는 "사진보기" 또는 📷 이모지 사용
-                line_content += f' <a href="{image_url}" target="_blank">(사진보기)</a>' # target="_blank" 추가
+                line_content += f' <a href="{image_url}" target="_blank">(사진보기)</a>'
             else:
-                line_content += " (이미지 검색 중...)" # 이미지 검색 중임을 표시
+                line_content += " (이미지 검색 중...)" 
 
             html_content.append(line_content)
 
         self.textEdit_gpt_description.setHtml("<br>".join(html_content))
 
     # 링크 클릭 시 외부 브라우저로 열기
-    def open_image_link(self, qurl_link): # 인자를 QUrl 객체로 받음
+    def open_image_link(self, qurl_link):
         link_str = qurl_link.toString()
         print(f"링크 클릭: {link_str}")
         webbrowser.open(link_str) # 기본 웹 브라우저로 링크 열기
